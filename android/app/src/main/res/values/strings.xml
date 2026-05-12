@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">remotify</string>
+    <string name="title_activity_main">remotify</string>
+    <string name="package_name">com.heyypramod.remotify</string>
+    <string name="custom_url_scheme">com.heyypramod.remotify</string>
+</resources>

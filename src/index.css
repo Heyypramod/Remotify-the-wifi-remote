@@ -1,0 +1,94 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+
+  /* Material 3 Ambient Expresive Palette */
+  --color-m3-background: #F7F3EE;
+  --color-m3-surface: #FFFDF9;
+  --color-m3-on-surface: #241F1A; 
+  
+  --color-m3-surface-variant: #FFF6EC;
+  --color-m3-on-surface-variant: #7A6858;
+  --color-m3-elevated: #FFF3E7;
+  --color-m3-outline: rgba(36, 31, 26, 0.05);
+  --color-m3-outline-variant: rgba(36, 31, 26, 0.05);
+  --color-m3-inactive-icon: #B8AA9D;
+
+  --color-m3-primary: #FF9B54;
+  --color-m3-primary-glow: #FFD8B8;
+  --color-m3-on-primary: #FFFFFF;
+  --color-m3-primary-container: rgba(255, 155, 84, 0.15);
+  --color-m3-on-primary-container: #7A3B20;
+  
+  --color-m3-on-background: #241F1A;
+
+  --color-m3-secondary: #7A6858;
+  --color-m3-on-secondary: #FFFFFF;
+  --color-m3-secondary-container: #FFF6EC;
+  --color-m3-on-secondary-container: #241F1A;
+
+  --color-m3-tertiary: #6C5D2F;
+  --color-m3-on-tertiary: #FFFFFF;
+  --color-m3-tertiary-container: #F6DF9E;
+  --color-m3-on-tertiary-container: #221B00;
+
+  --color-m3-error: #BA1A1A;
+  --color-m3-on-error: #FFFFFF;
+
+  --radius-m3-full: 9999px;
+  --radius-m3-3xl: 40px;
+  --radius-m3-2xl: 32px;
+  --radius-m3-xl: 24px;
+  --radius-m3-lg: 20px;
+  --radius-m3-md: 16px;
+  --radius-m3-sm: 12px;
+  --radius-m3-xs: 8px;
+
+  --animate-slow-spin: slow-spin 30s linear infinite;
+  --animate-ambient-shift: ambient-shift 20s ease-in-out infinite alternate;
+  --animate-ambient-pulse: ambient-pulse 15s ease-in-out infinite alternate;
+  --animate-conic-spin: conic-spin 25s linear infinite;
+
+  @keyframes slow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes ambient-shift {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+    50% { transform: translate(5%, 3%) scale(1.05); opacity: 0.5; }
+    100% { transform: translate(-3%, -5%) scale(0.95); opacity: 0.3; }
+  }
+
+  @keyframes ambient-pulse {
+    0% { opacity: 0.2; transform: scale(0.98); }
+    100% { opacity: 0.4; transform: scale(1.02); }
+  }
+
+  @keyframes conic-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-m3-background text-m3-on-background font-sans antialiased selection:bg-m3-primary/20 selection:text-m3-on-surface transition-colors duration-500 ease-in-out;
+  }
+
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Custom Bottom Nav Blur/Glass effect common in modern Material apps */
+.glass-nav {
+  @apply bg-m3-surface/80 backdrop-blur-xl border border-m3-outline/10 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.05)] dark:bg-m3-surface-variant/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)];
+}
+
