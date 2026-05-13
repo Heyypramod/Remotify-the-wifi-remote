@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useRemoteSocket } from '../hooks/useRemoteSocket';
+import { useRemoteAdapter } from '../hooks/useRemoteSocket';
 import { remoteDispatcher } from '../services/remoteCommandDispatcher';
 import { RemoteDevice, RemoteCommand, ConnectionState, RemoteCommandType } from '../types/remote';
 import { useSettings } from './SettingsContext';
@@ -17,6 +17,8 @@ interface RemoteContextType {
   listDevices: () => void;
   reconnect: () => void;
   disconnect: () => void;
+  providePin: (pin: string) => void;
+  connectToDevice: (ip: string) => void;
   transport: any;
 }
 
@@ -24,7 +26,7 @@ const RemoteContext = createContext<RemoteContextType | undefined>(undefined);
 
 export function RemoteProvider({ children }: { children: ReactNode }) {
   const { settings, updateSettings } = useSettings();
-  const { connectionState, devices, apps, error, reconnect, disconnect, transport } = useRemoteSocket();
+  const { connectionState, devices, apps, error, reconnect, disconnect, providePin, connectToDevice, transport } = useRemoteAdapter();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [hasManuallySelected, setHasManuallySelected] = useState(false);
 
@@ -34,9 +36,9 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
     }
   }, [settings.serverUrl, transport]);
 
-  // Automatically request device list when connected
+  // Automatically request device list when connected or discovering initially
   useEffect(() => {
-    if (connectionState === ConnectionState.CONNECTED) {
+    if (connectionState === ConnectionState.DISCONNECTED) {
       remoteDispatcher.dispatch({
         type: RemoteCommandType.DEVICE_LIST_REQUEST,
       }).catch(err => console.error("Failed to request device list", err));
@@ -49,7 +51,7 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
     }
   }, [settings.autoReconnect, transport]);
 
-  // Auto-select first available device if none is selected and user hasn't manually changed it, OR use last saved
+  // Auto-select first available device
   useEffect(() => {
     if (devices.length > 0 && selectedDeviceId === null && !hasManuallySelected) {
       let initialDeviceParams = devices[0].id;
@@ -60,11 +62,6 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
       }
 
       setSelectedDeviceId(initialDeviceParams);
-      
-      remoteDispatcher.dispatch({
-        type: RemoteCommandType.DEVICE_SELECT,
-        payload: { deviceId: initialDeviceParams }
-      }).catch(err => console.error("Failed to select device on backend", err));
     }
   }, [devices, selectedDeviceId, hasManuallySelected, settings.rememberLastDevice, settings.lastDeviceId]);
 
@@ -73,12 +70,13 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
     setHasManuallySelected(true);
     if (deviceId) {
       if (settings.rememberLastDevice) updateSettings({ lastDeviceId: deviceId });
-      remoteDispatcher.dispatch({
-          type: RemoteCommandType.DEVICE_SELECT,
-          payload: { deviceId }
-      }).catch(err => console.error("Failed to notify backend of device selection", err));
+      
+      const device = devices.find(d => d.id === deviceId);
+      if (device) {
+        connectToDevice(device.ipAddress);
+      }
     }
-  }, [settings.rememberLastDevice, updateSettings]);
+  }, [settings.rememberLastDevice, updateSettings, devices, connectToDevice]);
 
   const listDevices = useCallback(() => {
     remoteDispatcher.dispatch({
@@ -119,6 +117,8 @@ export function RemoteProvider({ children }: { children: ReactNode }) {
       listDevices,
       reconnect,
       disconnect,
+      providePin,
+      connectToDevice,
       transport
     }}>
       {children}

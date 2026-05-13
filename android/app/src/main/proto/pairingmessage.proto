@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package pairing;
+option java_package = "com.remotify.app.proto";
+option java_multiple_files = true;
+
+message PairingMessage {
+  PairingRequest pairing_request = 1;
+  PairingRequestAck pairing_request_ack = 2;
+  PairingOption options = 3;
+  PairingConfiguration configuration = 4;
+  PairingConfigurationAck configuration_ack = 5;
+  PairingSecret secret = 6;
+  PairingSecretAck secret_ack = 7;
+  enum Status {
+    UNKNOWN = 0;
+    STATUS_OK = 200;
+    STATUS_ERROR = 400;
+    STATUS_BAD_CONFIGURATION = 401;
+    STATUS_BAD_SECRET = 402;
+  }
+  Status status = 8;
+}
+
+message PairingRequest {
+  string service_name = 1;
+  string client_name = 2;
+}
+
+message PairingRequestAck {
+  string server_name = 1;
+}
+
+message PairingOption {
+  // 1: input (client provides code), 2: output (server shows code)
+  enum Type {
+    UNKNOWN_TYPE = 0;
+    INPUT_CODE = 1;
+    OUTPUT_CODE = 2;
+  }
+  Type type = 1;
+  int32 length = 2;
+}
+
+message PairingConfiguration {
+  PairingOption client_option = 1;
+  repeated PairingOption server_options = 2;
+}
+
+message PairingConfigurationAck {
+  // Empty
+}
+
+message PairingSecret {
+  bytes secret = 1;
+}
+
+message PairingSecretAck {
+  bytes secret = 1;
+}

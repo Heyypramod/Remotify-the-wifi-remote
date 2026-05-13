@@ -68,6 +68,7 @@ export class RemoteCommandDispatcher {
 
   // High-frequency events that must be throttled to avoid flooding transport
   private readonly throttledTypes = new Set<RemoteCommandType>([
+    RemoteCommandType.POINTER,
     RemoteCommandType.TOUCH_MOVE,
     RemoteCommandType.TOUCH_SCROLL,
     RemoteCommandType.VOLUME,
@@ -127,6 +128,11 @@ export class RemoteCommandDispatcher {
         break;
       case RemoteCommandType.TEXT:
         if (typeof command.payload?.text !== 'string') throw new Error('TEXT command missing "text"');
+        break;
+      case RemoteCommandType.POINTER:
+        if (typeof command.payload?.deltaX !== 'number' || typeof command.payload?.deltaY !== 'number') {
+          throw new Error('POINTER command missing dx/dy constraints');
+        }
         break;
       case RemoteCommandType.TOUCH_MOVE:
       case RemoteCommandType.TOUCH_SCROLL:

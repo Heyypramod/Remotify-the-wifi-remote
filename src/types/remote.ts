@@ -1,6 +1,7 @@
 export enum RemoteCommandType {
   KEY = 'KEY',
   TEXT = 'TEXT',
+  POINTER = 'POINTER',
   TOUCH_MOVE = 'TOUCH_MOVE',
   TOUCH_TAP = 'TOUCH_TAP',
   TOUCH_SCROLL = 'TOUCH_SCROLL',
@@ -38,6 +39,10 @@ export enum ConnectionState {
   CONNECTED = 'CONNECTED',
   RECONNECTING = 'RECONNECTING',
   ERROR = 'ERROR',
+  DISCOVERING = 'DISCOVERING',
+  WAITING_FOR_PAIRING_PIN = 'WAITING_FOR_PAIRING_PIN',
+  PAIRING = 'PAIRING',
+  FAILED = 'FAILED',
 }
 
 export enum DeviceType {
@@ -162,12 +167,22 @@ export interface AdbConnectCommand {
   };
 }
 
+export interface PointerCommand {
+  type: RemoteCommandType.POINTER;
+  payload: {
+    deltaX: number;
+    deltaY: number;
+    direction: 'DOWN' | 'UP' | 'MOVE';
+  };
+}
+
 /**
  * Discriminated union of all remote commands across the system.
  */
 export type RemoteCommand =
   | KeyCommand
   | TextCommand
+  | PointerCommand
   | TouchMoveCommand
   | TouchTapCommand
   | TouchScrollCommand

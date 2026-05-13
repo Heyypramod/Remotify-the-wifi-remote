@@ -1,67 +1,52 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ConnectionState, RemoteDevice } from '../types/remote';
-import { wsTransport, WebSocketTransport } from '../services/websocketTransport';
+import { atrpTransport } from '../services/atrpTransport';
 import { remoteDispatcher } from '../services/remoteCommandDispatcher';
 
-export function useRemoteSocket() {
+export function useRemoteAdapter() {
   const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
   const [devices, setDevices] = useState<RemoteDevice[]>([]);
   const [apps, setApps] = useState<{ packageName: string; name: string; isActive?: boolean }[]>([]);
   const [error, setError] = useState<Error | null>(null);
 
-  // Use a ref to ensure we only set the transport once on mount
   const transportSetRef = useRef(false);
 
   useEffect(() => {
-    // Inject the transport into the dispatcher
     if (!transportSetRef.current) {
-      remoteDispatcher.setTransport(wsTransport);
+      remoteDispatcher.setTransport(atrpTransport as any);
       transportSetRef.current = true;
     }
 
-    // Subscribe to state changes
-    const unsubscribeState = wsTransport.onConnectionStateChange((state) => {
-      setConnectionState(state);
-    });
-
-    const unsubscribeDeviceList = wsTransport.onDeviceList((deviceList) => {
-      setDevices(deviceList);
-    });
-
-    const unsubscribeAppList = wsTransport.onAppList((appList) => {
-      setApps(appList);
-    });
-
-    const unsubscribeError = wsTransport.onError((err) => {
+    const unsubscribeState = atrpTransport.onConnectionStateChange((state) => setConnectionState(state));
+    const unsubscribeDeviceList = atrpTransport.onDeviceList((deviceList) => setDevices(deviceList));
+    const unsubscribeAppList = atrpTransport.onAppList((appList) => setApps(appList));
+    const unsubscribeError = atrpTransport.onError((err) => {
       setError(err);
-      console.error('WebSocket Error:', err);
+      console.error('Transport Error:', err);
     });
-
-    // Auto-connect on mount if not connected
-    if (wsTransport.getConnectionState() === ConnectionState.DISCONNECTED) {
-      wsTransport.connect();
-    }
 
     return () => {
       unsubscribeState();
       unsubscribeDeviceList();
       unsubscribeAppList();
       unsubscribeError();
-      // Only disconnect if we want to cleanup on unmount completely (e.g., leaving the app)
-      // For Remotify, we might want to keep the connection alive in background,
-      // but typical pattern is cleanup. 
-      // We'll leave it running for global state or just abstract it here:
-      // wsTransport.disconnect(true);
     };
   }, []);
 
   const reconnect = useCallback(() => {
-    wsTransport.disconnect(true);
-    wsTransport.connect();
+    atrpTransport.disconnect(true);
   }, []);
 
   const disconnect = useCallback(() => {
-    wsTransport.disconnect(true);
+    atrpTransport.disconnect(true);
+  }, []);
+
+  const providePin = useCallback((pin: string) => {
+    atrpTransport.providePin(pin);
+  }, []);
+
+  const connectToDevice = useCallback((ip: string) => {
+    atrpTransport.connectToDevice(ip);
   }, []);
 
   return {
@@ -69,8 +54,10 @@ export function useRemoteSocket() {
     devices,
     apps,
     error,
-    transport: wsTransport,
+    transport: atrpTransport,
     reconnect,
-    disconnect
+    disconnect,
+    providePin,
+    connectToDevice
   };
 }
