@@ -254,4 +254,12 @@ class RemotifyNativePlugin : Plugin() {
         PointerManager.enqueuePointerEvent(0f, 0f, direction)
         call.resolve()
     }
+
+    @PluginMethod
+    fun sendKey(call: PluginCall) {
+        val key = call.getString("key") ?: return
+        val direction = call.getString("direction") ?: "SHORT"
+        connectionManager?.sendKey(key, direction)
+        call.resolve()
+    }
 }

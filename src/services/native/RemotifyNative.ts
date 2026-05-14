@@ -16,6 +16,7 @@ export interface ConnectionStateChangeEvent {
 export interface RemotifyNativePlugin {
   sendPointer(options: { deltaX: number; deltaY: number; direction: 'DOWN' | 'UP' | 'MOVE'; velocity?: number; gestureType?: string }): Promise<void>;
   sendTouchState(options: { down: boolean; isTap?: boolean; isLongPress?: boolean }): Promise<void>;
+  sendKey(options: { key: string; direction: 'SHORT' | 'DOWN' | 'UP' }): Promise<void>;
   startDiscovery(): Promise<{ status: string }>;
   stopDiscovery(): Promise<{ status: string }>;
   

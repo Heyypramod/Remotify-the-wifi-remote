@@ -107,6 +107,12 @@ class NativeTransport implements RemoteTransport {
             gestureType: 'swipe'
           });
         }
+      } else if (command.type === 'KEY') {
+        const payload = command.payload;
+        await RemotifyNative.sendKey({
+          key: payload.key,
+          direction: 'SHORT'
+        });
       } else {
         console.log("Native sending command (unimplemented in transport): ", wrapper);
       }

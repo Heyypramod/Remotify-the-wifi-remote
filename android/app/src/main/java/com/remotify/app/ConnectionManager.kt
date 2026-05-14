@@ -8,6 +8,9 @@ import javax.net.ssl.*
 import com.remotify.app.proto.RemoteMessage
 import com.remotify.app.proto.RemotePingRequest
 import com.remotify.app.proto.RemotePingResponse
+import com.remotify.app.proto.RemoteKeyInject
+import com.remotify.app.proto.RemoteKeyCode
+import com.remotify.app.proto.RemoteDirection
 
 class ConnectionManager(
     private val context: Context,
@@ -31,6 +34,7 @@ class ConnectionManager(
     
     fun updateState(newState: String) {
         if (state != newState) {
+            ProtocolLogger.logStateChange("Connection", state, newState)
             state = newState
             onStateChange(newState)
         }
@@ -86,8 +90,10 @@ class ConnectionManager(
                 // Parse delimited message from stream (handles varint length and fragmentation)
                 val message = RemoteMessage.parseDelimitedFrom(input)
                 if (message == null) {
+                    ProtocolLogger.logError("Transport", "Socket stream returned null (Server disconnected)")
                     throw Exception("Socket closed by remote")
                 }
+                ProtocolLogger.logRx(message.messageCase.name, message)
                 handleProtobufMessage(message)
             }
         } catch (e: Exception) {
@@ -134,10 +140,44 @@ class ConnectionManager(
         }
     }
 
-    private fun sendPing() {
+    fun sendPing() {
         val ping = RemotePingRequest.newBuilder().setVal1(2).build()
         val outMsg = RemoteMessage.newBuilder().setPingRequest(ping).build()
         sendPayload(outMsg)
+    }
+
+    fun sendKey(keyCode: String, direction: String) {
+        val remoteKey = when (keyCode) {
+            "HOME" -> RemoteKeyCode.KEYCODE_HOME
+            "BACK" -> RemoteKeyCode.KEYCODE_BACK
+            "DPAD_UP" -> RemoteKeyCode.KEYCODE_DPAD_UP
+            "DPAD_DOWN" -> RemoteKeyCode.KEYCODE_DPAD_DOWN
+            "DPAD_LEFT" -> RemoteKeyCode.KEYCODE_DPAD_LEFT
+            "DPAD_RIGHT" -> RemoteKeyCode.KEYCODE_DPAD_RIGHT
+            "ENTER" -> RemoteKeyCode.KEYCODE_DPAD_CENTER
+            "VOLUME_UP" -> RemoteKeyCode.KEYCODE_VOLUME_UP
+            "VOLUME_DOWN" -> RemoteKeyCode.KEYCODE_VOLUME_DOWN
+            "POWER" -> RemoteKeyCode.KEYCODE_POWER
+            else -> RemoteKeyCode.KEYCODE_UNKNOWN
+        }
+
+        val remoteDir = when (direction) {
+            "DOWN" -> RemoteDirection.START_LONG
+            "UP" -> RemoteDirection.END_LONG
+            "SHORT" -> RemoteDirection.SHORT
+            else -> RemoteDirection.SHORT
+        }
+
+        val keyInject = RemoteKeyInject.newBuilder()
+            .setKeyCode(remoteKey)
+            .setDirection(remoteDir)
+            .build()
+
+        val message = RemoteMessage.newBuilder()
+            .setRemoteKeyInject(keyInject)
+            .build()
+
+        sendPayload(message)
     }
 
     fun sendPayload(message: RemoteMessage) {
@@ -146,6 +186,7 @@ class ConnectionManager(
             try {
                 withContext(Dispatchers.IO) {
                     val out = socket?.outputStream ?: return@withContext
+                    ProtocolLogger.logTx(message.messageCase.name, message)
                     message.writeDelimitedTo(out)
                     out.flush()
                 }

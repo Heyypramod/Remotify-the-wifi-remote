@@ -11,6 +11,7 @@ import javax.net.ssl.X509TrustManager
 import java.security.cert.X509Certificate
 
 object TlsManager {
+    private const val TAG = "TlsManager"
     private const val ALIAS = "RemotifyClientKey"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
@@ -19,25 +20,34 @@ object TlsManager {
         keyStore.load(null)
 
         if (!keyStore.containsAlias(ALIAS)) {
+            Log.i(TAG, "Generating new client keypair and certificate")
             generateKeyPair()
         }
 
         val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         keyManagerFactory.init(keyStore, null)
 
-        // For Android TV Remote v2, we must trust the server implicitly (or verify its hash, but for now we trust all and save the hash later).
-        val trustAllCerts = arrayOf<X509TrustManager>(object : X509TrustManager {
+        val trustManager = object : X509TrustManager {
             override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {}
-            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {}
-        })
+            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {
+                ProtocolLogger.logTlsHandshake("Client Trusted Verify", "authType=$authType")
+            }
+            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {
+                // ATRPv2 uses self-signed server certs. 
+                // In production, we should compare the cert hash with the one verified during pairing.
+                if (certs.isNotEmpty()) {
+                    ProtocolLogger.logCertificate(certs[0], "Server")
+                }
+            }
+        }
 
         val sslContext = SSLContext.getInstance("TLSv1.2")
-        sslContext.init(keyManagerFactory.keyManagers, trustAllCerts, java.security.SecureRandom())
+        sslContext.init(keyManagerFactory.keyManagers, arrayOf(trustManager), java.security.SecureRandom())
         return sslContext
     }
 
     private fun generateKeyPair() {
+        // Android KeyStore automatically generates a self-signed certificate when KeyPair is generated with specific specs
         val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE)
         val parameterSpec = KeyGenParameterSpec.Builder(
             ALIAS,
@@ -46,18 +56,16 @@ object TlsManager {
             setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
             setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
             setKeySize(2048)
-            // It automatically generates a self-signed certificate, which can be extracted via keyStore.getCertificate(ALIAS)
+            setCertificateSubject(javax.security.auth.x500.X500Principal("CN=Remotify"))
             build()
         }
         kpg.initialize(parameterSpec)
         kpg.generateKeyPair()
     }
 
-    // Helper to get our client certificate if we need its hash for pairing
     fun getClientCertificate(): X509Certificate? {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
         keyStore.load(null)
-        val cert = keyStore.getCertificate(ALIAS)
-        return cert as? X509Certificate
+        return keyStore.getCertificate(ALIAS) as? X509Certificate
     }
 }
